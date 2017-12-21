@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+from __future__ import print_function
+
 from base64 import b64encode,b64decode
 import requests
 import random
@@ -5,6 +8,9 @@ import string
 from Crypto.Hash import SHA, HMAC
 from requests.auth import HTTPDigestAuth
 import argparse
+
+# Turn off ssl warnings
+requests.packages.urllib3.disable_warnings()
 
 # Key used for generated the HMAC signature
 secret_key = "ZmVay1EQVFOaZhwQ4Kv81ypLAZNczV9sG4KkseXWn1NEk6cXmPKO/MCa9sryslvLCFMnNe4Z4CPXzToowvhHvA=="
@@ -51,14 +57,24 @@ def pair(config):
     grant_request = {"auth": auth, "device": get_device_spec_json(config)}
 
     print("Attempting to pair")
-    r = requests.post("https://" + config["address"] +":1926/6/pair/grant", json=grant_request, verify=False,auth=HTTPDigestAuth(config["device_id"], config["auth_key"]))
+    r = requests.post(
+        "https://{}:1926/6/pair/grant".format(config["address"]),
+        json=grant_request,
+        verify=False,
+        auth=HTTPDigestAuth(config["device_id"], config["auth_key"])
+    )
+
     print(r.json())
     print("Username for subsequent calls is: " + config["device_id"])
     print("Password for subsequent calls is: " + config["auth_key"])
 
 
 def get_command(config):
-    r = requests.get("https://" + config["address"] + ":1926/" + config["path"], verify=False,auth=HTTPDigestAuth(config["device_id"], config["auth_key"]))
+    r = requests.get(
+        "https://{}:1926/{}".format(config["address"], config["path"]),
+        verify=False,
+        auth=HTTPDigestAuth(config["device_id"], config["auth_key"])
+    )
     print(r)
     print(r.url)
     print(r.text)
@@ -66,19 +82,26 @@ def get_command(config):
 
 
 def post_command(config):
-    r = requests.post("https://" + config["address"] + ":1926/" + config["path"], json=config["body"], verify=False,auth=HTTPDigestAuth(config["device_id"], config["auth_key"]))
+    r = requests.post(
+        "https://{}:1926/{}".format(config["address"], config["path"]),
+        json=config["body"],
+        verify=False,
+        auth=HTTPDigestAuth(config["device_id"], config["auth_key"])
+    )
     print(r)
 
 
-def main():
+def parse_arguments():
     parser = argparse.ArgumentParser(description="Control a Philips Android TV on your LAN.")
     parser.add_argument("--host", dest="host", help="Host/address of the TV")
     parser.add_argument("--user", dest="user", help="Username")
     parser.add_argument("--pass", dest="password", help="Password")
     parser.add_argument("command",  help="Command to run (pair/get_volume/get/standby)")
+    return parser.parse_args()
 
-    args = parser.parse_args()
 
+def main():
+    args = parse_arguments()
     config = {"address": args.host}
 
     if args.command == "pair":
